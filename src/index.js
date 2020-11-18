@@ -3,17 +3,23 @@ import { render } from "react-dom"
 
 import {
   useBroadcaster,
-  useListener
+  useListener,
+  forOf,
+  createTimeout
 } from "./broadcasters"
-import {  targetValue} from "./operators"
+import {  targetValue, mapSequence, hardCode} from "./operators"
+
+let message = "Hi, my name is Zhen".split(" ")
+let delayMessage = value => hardCode(value)(createTimeout(500))
+let broadcaster = mapSequence(delayMessage)(forOf(message))
 
 let App = () => {
   let onInput = useListener()
-  let inputValueBroadcaster = targetValue(onInput)
-  let state = useBroadcaster(inputValueBroadcaster)
+  let state = useBroadcaster(broadcaster)
   return (
     <div>
       <input type="text" onInput={onInput} />
+      <br/>
       {state}
     </div>
   )
