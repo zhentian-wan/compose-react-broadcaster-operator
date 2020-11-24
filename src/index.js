@@ -7,18 +7,30 @@ import {
   forOf,
   createTimeout
 } from "./broadcasters"
-import {  targetValue, mapSequence, hardCode} from "./operators"
+import {  hardCode, targetValue, allowWhen, filterByKey, mapSequence, mapBroadcaster} from "./operators"
+import {pipe} from "lodash/fp"
 
-let message = "Hi, my name is Zhen".split(" ")
-let delayMessage = value => hardCode(value)(createTimeout(500))
-let broadcaster = mapSequence(delayMessage)(forOf(message))
+
 
 let App = () => {
   let onInput = useListener()
+  let onKeyPress = useListener()
+  let inputValue = targetValue(onInput)
+  let enter = filterByKey("Enter")(onKeyPress)
+
+  let messages = message => forOf(message.split(" "))
+  let delayMessage = value => hardCode(value)(createTimeout(500))
+  let messageSequence = msg => mapSequence(delayMessage)(messages(msg))
+  
+  let broadcaster = pipe(
+    allowWhen(enter),
+    mapBroadcaster(messageSequence)
+  )(inputValue)
   let state = useBroadcaster(broadcaster)
+
   return (
     <div>
-      <input type="text" onInput={onInput} />
+      <input type="text" onInput={onInput} onKeyPress={onKeyPress} />
       <br/>
       {state}
     </div>

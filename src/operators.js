@@ -236,3 +236,20 @@ export let mapSequence = createBroadcaster => broadcaster => listener => {
     cancel()
   }
 }
+
+export const filterByKey = key => filter(event => event.key === key)
+
+export const allowWhen = allowBroadcaster => broadcaster => listener => {
+  let current
+  let cancel = broadcaster((value) => {
+    current = value;
+  })
+  let cancelAllow = allowBroadcaster(() => {
+    listener(current)
+  })
+
+  return () => {
+    cancel()
+    cancelAllow()
+  }
+ }
