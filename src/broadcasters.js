@@ -101,8 +101,8 @@ export let forOf = curry((iterable, listener) => {
   }
 })
 
-export let useBroadcaster = (broadcaster, deps = []) => {
-  let [state, setState] = useState(null)
+export let useBroadcaster = (broadcaster, initVal = null, deps = []) => {
+  let [state, setState] = useState(initVal)
   useEffect(() => {
     broadcaster((value) => {
       if (value === done) {
