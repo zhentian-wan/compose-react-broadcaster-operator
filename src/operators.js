@@ -261,12 +261,34 @@ export const allowWhen = allowBroadcaster => broadcaster => listener => {
     if (cancelTimeout) {
       cancelTimeout()
     }
-    cancelTimeout = createTimeout(time)(() => {
+    cancelTimeout = createTimeout(time)((innerValue) => {
+      if (innerValue === done) {
+        return
+      }
       listener(value)
     })
   })
   return () => {
     cancel()
     cancelTimeout()
+  }
+}
+
+export let ifElse = (condition, ifOp, elOp) => broadcaster => listener => {
+  let cancel = broadcaster(value => {
+
+    if (value === done) {
+      return;
+    }
+
+    if (condition(value)) {
+      ifOp(innerValue => innerValue(value))(listener)
+    } else {
+      elOp(innerValue => innerValue(value))(listener)
+    }
+  })
+
+  return () => {
+    cancel()
   }
 }
