@@ -115,13 +115,13 @@ export let useBroadcaster = (broadcaster, initVal = null, deps = []) => {
 }
 
 export let useListener = (deps = []) => {
-  let listener
+  let listeners = []
   let callbackListener = value => {
     if (typeof value === "function") {
-      listener = value
+      listeners.push(value)
       return
     }
-    listener(value)
+    listeners.forEach(listener => listener(value))
   }
   return useCallback(callbackListener, deps)
 }

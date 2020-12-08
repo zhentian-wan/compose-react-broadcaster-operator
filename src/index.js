@@ -4,8 +4,9 @@ import { render } from "react-dom"
 import {
   useBroadcaster,
   useListener,
+  merge,
 } from "./broadcasters"
-import {  hardCode, targetValue, waitFor, ifElse, mapBroadcaster, map, filter} from "./operators"
+import {  targetValue, waitFor, mapBroadcaster, map, filter} from "./operators"
 import {pipe} from "lodash/fp"
 
 //https://openlibrary.org/search.json?q=${name}
@@ -40,26 +41,29 @@ let App = () => {
   let inputValue = targetValue(onInput)
 
   let inputToBooks = pipe(
+    filter(name => name.length > 3),
     waitFor(150),
-    ifElse(
-      // condition
-      name => name.length > 3,
-      // if
-      pipe(
-        map(name => `https://openlibrary.org/search.json?q=${name}`),
-        mapBroadcaster(getUrl),
-        map(json => json.docs)
-      ),
-      // else
-      map(() => [])
-  ))(inputValue)
-  let books = useBroadcaster(inputToBooks, [])
+    pipe(
+      map(name => `https://openlibrary.org/search.json?q=${name}`),
+      mapBroadcaster(getUrl),
+      map(json => json.docs)
+    ))(inputValue)
+
+  let inputToClearSearch = pipe(
+    filter(name => name.length < 4),
+    map(() => [{title: "hello"}])
+  )(inputValue)
+
+  let books = useBroadcaster(merge(
+    inputToBooks,
+    inputToClearSearch
+  ), [])
 
   return (
     <div>
       <input type="text" onInput={onInput} />
       {books.map(book => {
-        return <div key={book.key}>
+        return <div key={book.title}>
           <a href={`https://openlibrary.org${book.key}`}>{book.title}</a>
         </div>
       })}
