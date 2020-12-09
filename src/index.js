@@ -6,20 +6,10 @@ import {
   useListener,
   merge,
 } from "./broadcasters"
-import {  targetValue, waitFor, mapBroadcaster, map, filter} from "./operators"
+import { ignoreError, targetValue, waitFor, mapBroadcasterCache, map, filter} from "./operators"
 import {pipe} from "lodash/fp"
 
 //https://openlibrary.org/search.json?q=${name}
-
-export let mapError = transform => broadcaster => listener => {
-  return broadcaster((value) => {
-    if (value instanceof Error) {
-      listener(transform(value))
-      return
-    }
-    listener(value)
-  })
-}
 
 let getUrl = url => listener => {
   let controller = new AbortController()
@@ -45,7 +35,8 @@ let App = () => {
     waitFor(150),
     pipe(
       map(name => `https://openlibrary.org/search.json?q=${name}`),
-      mapBroadcaster(getUrl),
+      mapBroadcasterCache(getUrl),
+      ignoreError,
       map(json => json.docs)
     ))(inputValue)
 

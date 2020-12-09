@@ -86,6 +86,25 @@ export let startWhen = whenBroadcaster => mainBroadcaster => listener => {
   }
 }
 
+export let mapError = transform => broadcaster => listener => {
+  return broadcaster((value) => {
+    if (value instanceof Error) {
+      listener(transform(value))
+      return
+    }
+    listener(value)
+  })
+}
+
+export let ignoreError = broadcaster => listener => {
+  return broadcaster((value) => {
+    if (value instanceof Error) {
+      return
+    }
+    listener(value)
+  })
+}
+
 export let stopWhen = whenBroadcaster => mainBroadcaster => listener => {
   let cancelMain = mainBroadcaster(listener)
 
@@ -105,6 +124,33 @@ export let mapBroadcaster = createBroadcaster => broadcaster => listener => {
   return broadcaster(value => {
     let newBroadcaster = createBroadcaster(value)
     newBroadcaster(listener)
+  })
+}
+
+export let mapBroadcasterCache = createBroadcaster => broadcaster => listener => {
+  let cache = new Map()
+  let cancel
+
+  return broadcaster(value => {
+    // abort previous 
+    if (cancel) {
+      cancel()
+      return;
+    } 
+
+    if (cache.has(value)) {
+      listener(cache.get(value))
+      return
+    }
+    let newBroadcaster = createBroadcaster(value)
+    cancel = newBroadcaster((newValue) => {
+      // Add to cache only if newValue isn't an error
+      if (!(newValue instanceof Error)) {
+        cache.set(value, newValue)
+        }
+      console.log(cache)
+      listener(newValue)
+    })
   })
 }
 
