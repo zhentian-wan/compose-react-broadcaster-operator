@@ -3,6 +3,21 @@ import React, {useState, useEffect, useCallback} from "react"
 
 export let done = Symbol("done")
 
+export let getUrl = url => listener => {
+  let controller = new AbortController()
+  let signal = controller.signal
+  fetch(url, {signal})
+    .then((response) => {
+        return response.json()
+    })
+    .then(listener)
+    .catch(listener)
+
+    return () => {
+      controller.abort()
+    }
+}
+
 export let createTimeout = curry((time, listener) => {
   let id = setTimeout(() => {
     listener(null)

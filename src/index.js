@@ -3,61 +3,44 @@ import { render } from "react-dom"
 
 import {
   useBroadcaster,
-  useListener,
-  merge,
+  getUrl,
 } from "./broadcasters"
-import { ignoreError, targetValue, waitFor, mapBroadcasterCache, map, filter} from "./operators"
+import { map, filter} from "./operators"
 import {pipe} from "lodash/fp"
+import { head } from "lodash"
 
-//https://openlibrary.org/search.json?q=${name}
-
-let getUrl = url => listener => {
-  let controller = new AbortController()
-  let signal = controller.signal
-  fetch(url, {signal})
-    .then((response) => {
-        return response.json()
-    })
-    .then(listener)
-    .catch(listener)
-
-    return () => {
-      controller.abort()
+let share = () => {
+  let listeners = [];
+  let cancel;
+  return broadcaster => {
+    // this block of code will run last
+    cancel = broadcaster(value => {
+      listeners.forEach(l => l(value))
+    });
+    return listener => {
+      // this block of code will run mult times
+      listeners.push(listener);
+      return () => {
+        cancel()
+      }
     }
+  }
 }
+  
+let getWord = pipe(
+  map(head),
+  share()
+)(getUrl('https://random-word-api.herokuapp.com/word'))
 
 let App = () => {
-  let onInput = useListener()
-  let inputValue = targetValue(onInput)
 
-  let inputToBooks = pipe(
-    filter(name => name.length > 3),
-    waitFor(150),
-    pipe(
-      map(name => `https://openlibrary.org/search.json?q=${name}`),
-      mapBroadcasterCache(getUrl),
-      ignoreError,
-      map(json => json.docs)
-    ))(inputValue)
-
-  let inputToClearSearch = pipe(
-    filter(name => name.length < 4),
-    map(() => [{title: "hello"}])
-  )(inputValue)
-
-  let books = useBroadcaster(merge(
-    inputToBooks,
-    inputToClearSearch
-  ), [])
-
+  let word = useBroadcaster(getWord)
+  let anotherWord = useBroadcaster(getWord)
+  let anotherWord2 = useBroadcaster(getWord)
   return (
     <div>
-      <input type="text" onInput={onInput} />
-      {books.map(book => {
-        return <div key={book.title}>
-          <a href={`https://openlibrary.org${book.key}`}>{book.title}</a>
-        </div>
-      })}
+      <p>{word}</p>
+      <p>{anotherWord}</p>
     </div>
   )
 }
