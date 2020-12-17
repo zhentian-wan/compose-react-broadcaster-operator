@@ -5,6 +5,7 @@ import {
   useBroadcaster,
   getUrl,
   useListener,
+  combine,
 } from "./broadcasters"
 import { map, share, targetValue} from "./operators"
 import {pipe} from "lodash/fp"
@@ -20,11 +21,12 @@ let getWord = pipe(
 
 let App = () => {
   let onInput = useListener();
-  let word = useBroadcaster(getWord)
+  let gameBroadcaster = combine(targetValue(onInput), getWord)
+  let game = useBroadcaster(gameBroadcaster)
   return (
     <div>
       <input type="text" onInput={onInput} />
-      <p>{word}</p>
+      <p>{JSON.stringify(game)}</p>
     </div>
   )
 }
