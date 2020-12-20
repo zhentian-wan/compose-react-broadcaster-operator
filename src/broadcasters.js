@@ -145,13 +145,18 @@ export let forOf = curry((iterable, listener) => {
 export let useBroadcaster = (broadcaster, initVal = null, deps = []) => {
   let [state, setState] = useState(initVal)
   useEffect(() => {
-    broadcaster((value) => {
+    let cancel = broadcaster((value) => {
       if (value === done) {
         return
       }
       setState(value)
     })
+    return () => {
+      cancel()
+    }
   }, deps)
+
+
   return state
 }
 
@@ -168,3 +173,5 @@ export let useListener = (deps = []) => {
   }
   return useCallback(callbackListener, deps)
 }
+
+

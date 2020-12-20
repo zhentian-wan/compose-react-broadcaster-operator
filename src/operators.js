@@ -1,4 +1,5 @@
 import { curry } from "lodash"
+import { pipe } from "lodash/fp"
 import { done, createTimeout } from "./broadcasters"
 
 let createOperator = curry(
@@ -102,10 +103,18 @@ export let stopWhen = whenBroadcaster => mainBroadcaster => listener => {
 export let targetValue = map(event => event.target.value)
 
 export let mapBroadcaster = createBroadcaster => broadcaster => listener => {
-  return broadcaster(value => {
+  let newCancel;
+  let cancel = broadcaster(value => {
     let newBroadcaster = createBroadcaster(value)
-    newBroadcaster(listener)
+    newCancel = newBroadcaster(listener)
   })
+
+  return () => {
+    cancel();
+    if(newCancel) {
+      newCancel()
+    }
+  }
 }
 
 export let applyOperator = broadcaster =>
@@ -176,7 +185,6 @@ export let doneIf = condition => broadcaster => listener => {
     listener(value)
     if (condition(value)) {
       listener(done)
-      cancel()
     }
   })
 
@@ -298,19 +306,43 @@ export let share = () => {
   let cancel;
 
   return broadcaster => {
-    if (!cancel) {
-    // this block of code will run last
-      cancel = broadcaster(value => {
-        listeners.forEach(l => l(value))
-      });
-    }
-
     return listener => {
+      if (!cancel) {
+        // this block of code will run last
+          cancel = broadcaster(value => {
+            listeners.forEach(l => l(value))
+          });
+        }
       // this block of code will run mult times
       listeners.push(listener);
       return () => {
         cancel()
+        cancel = null
+        listeners = []
       }
     }
   }
 }
+
+export let thenCombine = secondBroadcaster => {
+  return mapBroadcaster(firstValue =>
+    map(secondValue => [firstValue, secondValue])(secondBroadcaster))
+}
+
+export let init = value => broadcaster => listener => {
+  listener(value)
+  return broadcaster(listener)
+}
+
+export let log = broadcaster => listener => {
+  return broadcaster(v => {
+    console.log(v);
+    listener(v);
+  })
+}
+
+export let repeatIf = condition =>
+  pipe(
+    doneIf(condition),
+    repeat
+  )
